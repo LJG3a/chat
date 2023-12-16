@@ -1,0 +1,91 @@
+import openai
+from dotenv import dotenv_values
+from typing import Iterable
+
+# .env 파일의 절대 경로를 얻어옵니다.
+file_path = "C:/Users/user/anaconda3/envs/Lee/OPENAI_API_KEY.txt"  # 파일 경로를 적절히 수정해야 합니다.
+
+# 파일에서 설정 값을 읽어옵니다.
+config = dotenv_values(file_path, verbose=True)
+
+# 'OPENAI_API_KEY' 키가 존재하는지 확인하고, 존재하면 API 키를 사용하여 OpenAI API에 연결합니다.
+openai.api_key = config.get("OPENAI_API_KEY")
+if not openai.api_key:
+    raise ValueError("OPENAI_API_KEY is not defined in the configuration file.")
+
+# 사용자에게 진하게 표시된 텍스트를 생성하는 함수입니다.
+def bold(text):
+    bold_start = "\033[1m"
+    bold_end = "\033[0m"
+    return bold_start + text + bold_end
+
+# 사용자에게 파란색 표시된 텍스트를 생성하는 함수입니다.
+def blue(text):
+    blue_start = "\033[34m"
+    blue_end = "\033[0m"
+    return blue_start + text + blue_end
+
+# 사용자에게 빨간색 표시된 텍스트를 생성하는 함수입니다.
+def red(text):
+    red_start = "\033[31m"
+    red_end = "\033[0m"
+    return red_start + text + red_end
+
+# 대화 로그를 저장하는 리스트
+conversation_log = []
+
+# 메인 함수입니다.
+def main():
+    # 챗봇의 초기 메시지를 생성합니다.
+    initial_prompt = "안녕하세요! 도와드릴까요?"
+
+    # 시스템 역할의 메시지로 초기화합니다.
+    messages = [{"role": "system", "content": initial_prompt}]
+
+    # 무한 루프를 통해 사용자의 입력을 받고 챗봇 응답을 생성합니다.
+    while True:
+        try:
+            # 사용자로부터 입력을 받습니다.
+            user_input = input(bold(blue("You: ")))
+
+            # 대화 로그에 사용자의 입력을 추가합니다.
+            conversation_log.append(f"You: {user_input}")
+
+            # 사용자의 입력을 메시지 리스트에 추가합니다.
+            messages.append({"role": "user", "content": user_input})
+
+            # 사용자가 대화를 종료하고 싶은지 확인합니다.
+            exit_commands = ["종료", "끝내기", "안녕"]
+            if user_input.lower() in exit_commands:
+                print("안녕히 가세요!")
+                break
+
+            # OpenAI API를 사용하여 챗봇 응답을 생성합니다.
+            res = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo-1106",  # 새로운 모델로 변경
+                messages=messages,
+                temperature=0.7,
+                max_tokens=350
+            )
+
+            # API 응답에서 챗봇의 메시지를 메시지 리스트에 추가하고 출력합니다.
+            assistant_message = res["choices"][0].get("message", {}).get("content")
+            if assistant_message:
+                messages.append({"role": "assistant", "content": assistant_message})
+                conversation_log.append(f"Assistant: {assistant_message}")
+                print(bold(red("Assistant: ")), assistant_message)
+
+        except KeyboardInterrupt:
+            print("종료 중...")
+            break
+
+    # 대화 로그를 파일에 저장합니다.
+    with open("conversation_log.txt", "w") as log_file:
+        log_file.write("\n".join(conversation_log))
+
+    # 최종적인 API 응답을 출력합니다.
+    print(res)
+
+# 스크립트가 직접 실행될 때만 main 함수를 호출합니다.
+if __name__ == "__main__":
+    main()
